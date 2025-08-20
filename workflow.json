@@ -1,0 +1,137 @@
+{
+  "name": "WhatsApp ChatGPT Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "whatsapp",
+        "options": {}
+      },
+      "id": "1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookDescription": "Receives incoming WhatsApp messages from Twilio"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "from": "whatsapp:+14155238886",
+        "to": "={{$json[\"From\"]}}",
+        "message": "={{$json[\"chatgpt_reply\"]}}"
+      },
+      "id": "2",
+      "name": "Twilio",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [1050, 300],
+      "credentials": {
+        "twilioApi": "Twilio Account"
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "const memory = $json.memory || [];\nconst newEntry = {role: \"user\", content: $json.Body};\nmemory.push(newEntry);\nif (memory.length > 10) memory.shift();\nreturn [{ json: { memory } }];"
+      },
+      "id": "3",
+      "name": "Update Memory",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "return [{json: {\n  model: \"gpt-4o-mini\",\n  messages: $json.memory\n}}];"
+      },
+      "id": "4",
+      "name": "Prepare ChatGPT Request",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "createChatCompletion",
+        "model": "gpt-4o-mini",
+        "messages": "={{$json[\"messages\"]}}"
+      },
+      "id": "5",
+      "name": "OpenAI ChatGPT",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [900, 300],
+      "credentials": {
+        "openAiApi": "OpenAI API"
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "const reply = $json.choices[0].message.content;\nconst memory = $json.messages;\nmemory.push({ role: \"assistant\", content: reply });\nreturn [{ json: { chatgpt_reply: reply, memory } }];"
+      },
+      "id": "6",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [1150, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Update Memory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Memory": {
+      "main": [
+        [
+          {
+            "node": "Prepare ChatGPT Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare ChatGPT Request": {
+      "main": [
+        [
+          {
+            "node": "OpenAI ChatGPT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI ChatGPT": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Twilio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
