@@ -1,80 +1,155 @@
 {
-  "name": "WhatsApp ChatGPT Bot",
+  "name": "WhatsApp Perplexity AI Bot",
+  "meta": {
+    "description": "Complete WhatsApp bot using Twilio webhook integration"
+  },
   "nodes": [
     {
       "parameters": {
+        "httpMethod": "POST",
         "path": "whatsapp",
+        "responseMode": "onReceived",
         "options": {}
       },
-      "id": "1",
+      "id": "8a6c4c0a-5b9d-4c8e-9f2a-1b3c5d7e9f0a",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [250, 300],
-      "webhookDescription": "Receives incoming WhatsApp messages from Twilio"
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "auto-generated"
     },
     {
       "parameters": {
-        "resource": "message",
-        "operation": "send",
-        "from": "whatsapp:+14155238886",
-        "to": "={{$json[\"From\"]}}",
-        "message": "={{$json[\"chatgpt_reply\"]}}"
+        "values": {
+          "string": [
+            {
+              "name": "message",
+              "value": "={{$json.Body}}"
+            },
+            {
+              "name": "from",
+              "value": "={{$json.From}}"
+            },
+            {
+              "name": "to", 
+              "value": "={{$json.To}}"
+            }
+          ]
+        },
+        "options": {}
       },
-      "id": "2",
-      "name": "Twilio",
-      "type": "n8n-nodes-base.twilio",
+      "id": "1b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e",
+      "name": "Extract Message",
+      "type": "n8n-nodes-base.set",
       "typeVersion": 1,
-      "position": [1050, 300],
-      "credentials": {
-        "twilioApi": "Twilio Account"
-      }
+      "position": [
+        460,
+        300
+      ]
     },
     {
       "parameters": {
-        "functionCode": "const memory = $json.memory || [];\nconst newEntry = {role: \"user\", content: $json.Body};\nmemory.push(newEntry);\nif (memory.length > 10) memory.shift();\nreturn [{ json: { memory } }];"
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyContentType": "json",
+        "jsonBody": "{\n  \"model\": \"llama-3.1-sonar-small-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"{{$node['Extract Message'].json.message}}\"\n    }\n  ],\n  \"max_tokens\": 300,\n  \"temperature\": 0.7\n}",
+        "options": {}
       },
-      "id": "3",
-      "name": "Update Memory",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
-      "position": [500, 300]
+      "id": "2c3d4e5f-6a7b-8c9d-0e1f-2a3b4c5d6e7f",
+      "name": "Perplexity AI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        680,
+        300
+      ]
     },
     {
       "parameters": {
-        "functionCode": "return [{json: {\n  model: \"gpt-4o-mini\",\n  messages: $json.memory\n}}];"
+        "values": {
+          "string": [
+            {
+              "name": "ai_response",
+              "value": "={{$json.choices[0].message.content}}"
+            },
+            {
+              "name": "reply_to",
+              "value": "={{$node['Extract Message'].json.from}}"
+            },
+            {
+              "name": "from_number",
+              "value": "={{$node['Extract Message'].json.to}}"
+            }
+          ]
+        },
+        "options": {}
       },
-      "id": "4",
-      "name": "Prepare ChatGPT Request",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
-      "position": [700, 300]
-    },
-    {
-      "parameters": {
-        "resource": "chat",
-        "operation": "createChatCompletion",
-        "model": "gpt-4o-mini",
-        "messages": "={{$json[\"messages\"]}}"
-      },
-      "id": "5",
-      "name": "OpenAI ChatGPT",
-      "type": "n8n-nodes-base.openAi",
-      "typeVersion": 1,
-      "position": [900, 300],
-      "credentials": {
-        "openAiApi": "OpenAI API"
-      }
-    },
-    {
-      "parameters": {
-        "functionCode": "const reply = $json.choices[0].message.content;\nconst memory = $json.messages;\nmemory.push({ role: \"assistant\", content: reply });\nreturn [{ json: { chatgpt_reply: reply, memory } }];"
-      },
-      "id": "6",
+      "id": "3d4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a",
       "name": "Format Response",
-      "type": "n8n-nodes-base.function",
+      "type": "n8n-nodes-base.set",
       "typeVersion": 1,
-      "position": [1150, 300]
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.twilio.com/2010-04-01/Accounts/ACd202d09b2770b4d4d2af553731937cb6/Messages.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "basicAuth": {
+          "user": "ACd202d09b2770b4d4d2af553731937cb6",
+          "password": "0d3c6f98de8f5f03fa5b721a9440df0d"
+        },
+        "sendBody": true,
+        "bodyContentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "From",
+              "value": "={{$node['Format Response'].json.from_number}}"
+            },
+            {
+              "name": "To", 
+              "value": "={{$node['Format Response'].json.reply_to}}"
+            },
+            {
+              "name": "Body",
+              "value": "={{$node['Format Response'].json.ai_response}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4e5f6a7b-8c9d-0e1f-2a3b-4c5d6e7f8a9b",
+      "name": "Send WhatsApp Reply",
+      "type": "n8n-nodes-base.httpRequest", 
+      "typeVersion": 4,
+      "position": [
+        1120,
+        300
+      ]
     }
   ],
   "connections": {
@@ -82,36 +157,25 @@
       "main": [
         [
           {
-            "node": "Update Memory",
+            "node": "Extract Message",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Update Memory": {
+    "Extract Message": {
       "main": [
         [
           {
-            "node": "Prepare ChatGPT Request",
-            "type": "main",
+            "node": "Perplexity AI",
+            "type": "main", 
             "index": 0
           }
         ]
       ]
     },
-    "Prepare ChatGPT Request": {
-      "main": [
-        [
-          {
-            "node": "OpenAI ChatGPT",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "OpenAI ChatGPT": {
+    "Perplexity AI": {
       "main": [
         [
           {
@@ -126,12 +190,16 @@
       "main": [
         [
           {
-            "node": "Twilio",
+            "node": "Send WhatsApp Reply",
             "type": "main",
             "index": 0
           }
         ]
       ]
     }
-  }
+  },
+  "active": true,
+  "settings": {},
+  "versionId": "1",
+  "id": "whatsapp-perplexity-bot"
 }
