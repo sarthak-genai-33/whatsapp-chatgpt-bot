@@ -61,7 +61,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer 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"
+              "value": "Bearer {{$env.PERPLEXITY_API_KEY}}"
             },
             {
               "name": "Content-Type",
@@ -115,12 +115,12 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.twilio.com/2010-04-01/Accounts/ACd202d09b2770b4d4d2af553731937cb6/Messages.json",
+        "url": "https://api.twilio.com/2010-04-01/Accounts/{{$env.TWILIO_ACCOUNT_SID}}/Messages.json",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpBasicAuth",
         "basicAuth": {
-          "user": "ACd202d09b2770b4d4d2af553731937cb6",
-          "password": "0d3c6f98de8f5f03fa5b721a9440df0d"
+          "user": "{{$env.TWILIO_ACCOUNT_SID}}",
+          "password": "{{$env.TWILIO_AUTH_TOKEN}}"
         },
         "sendBody": true,
         "bodyContentType": "form-urlencoded",
